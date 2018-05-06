@@ -1,0 +1,17 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+group = 'com.ds'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+}
+
+
+dependencies {
+	//compile('org.springframework.boot:spring-boot-starter')
+	compile group: 'com.rabbitmq', name: 'amqp-client', version: '4.0.2'
+	//testCompile('org.springframework.boot:spring-boot-starter-test')
+}
