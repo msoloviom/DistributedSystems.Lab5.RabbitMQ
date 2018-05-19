@@ -8,14 +8,16 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 import static com.ds.rabbitmq.Config.createRemoteConnection;
 
-public class Recv {
+public class RecvWithAck {
 
     private final static String QUEUE_NAME = "hello";
 
     public static void main(String[] argv) throws Exception {
+
         Connection connection = createRemoteConnection();
         Channel channel = connection.createChannel();
 
@@ -27,15 +29,21 @@ public class Recv {
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 String message = new String(body, "UTF-8");
-                System.out.println(" [x] Second consumer started processing of message: " + message);
-                System.out.println(" [x] Received '" + message + "'");
+                long deliveryTag = envelope.getDeliveryTag();
+                channel.basicReject(deliveryTag, true);
                 try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
+                    System.out.println(" [x] First consumer started processing of message: " + message);
+                    System.out.println(" [x] Ooops! Connection closed :(");
+                    connection.close();
+                    channel.close();
+                    Thread.sleep(100000);
+                } catch (TimeoutException | InterruptedException e) {
                     e.printStackTrace();
                 }
+
+                System.out.println(" [x] Received '" + message + "'");
             }
         };
-        channel.basicConsume(QUEUE_NAME, true, consumer);
+        channel.basicConsume(QUEUE_NAME, false, "a-consumer-tag", consumer);
     }
 }

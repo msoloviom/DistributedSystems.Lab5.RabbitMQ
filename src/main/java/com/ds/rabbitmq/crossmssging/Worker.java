@@ -1,23 +1,24 @@
-package com.ds.rabbitmq.work.queues;
+package com.ds.rabbitmq.crossmssging;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.MessageProperties;
 
 import java.io.IOException;
 
+import static com.ds.rabbitmq.Config.createRemoteConnection;
+
 public class Worker {
     private static final String TASK_QUEUE_NAME = "task_queue";
+    private static final String RESP_QUEUE_NAME = "resp_queue";
 
     public static void main(String[] argv) throws Exception {
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("localhost");
-        final Connection connection = factory.newConnection();
-        final Channel channel = connection.createChannel();
+        Connection connection = createRemoteConnection();
+        Channel channel = connection.createChannel();
 
         /* Two things are required to make sure that messages aren't lost:
          * we need to mark both the queue and messages as durable.
@@ -45,6 +46,13 @@ public class Worker {
                      */
                     channel.basicAck(envelope.getDeliveryTag(), false);
                 }
+                channel.queueDeclare(RESP_QUEUE_NAME, true, false, false, null);
+
+                String messg = "!!! Changed: " + message;
+                channel.basicPublish("", RESP_QUEUE_NAME,
+                        MessageProperties.PERSISTENT_TEXT_PLAIN,
+                        messg.getBytes());
+                System.out.println(" [x] Sent '" + messg + "'");
             }
         };
         channel.basicConsume(TASK_QUEUE_NAME, false, consumer);

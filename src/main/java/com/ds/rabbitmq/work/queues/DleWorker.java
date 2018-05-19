@@ -1,4 +1,4 @@
-package com.ds.rabbitmq.hello;
+package com.ds.rabbitmq.work.queues;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -10,25 +10,21 @@ import com.rabbitmq.client.Envelope;
 import java.io.IOException;
 
 import static com.ds.rabbitmq.Config.createRemoteConnection;
+import static com.ds.rabbitmq.work.queues.NewTask.DLE_QUEUE;
 
-public class Recv {
-
-    private final static String QUEUE_NAME = "hello";
-
+public class DleWorker {
     public static void main(String[] argv) throws Exception {
         Connection connection = createRemoteConnection();
         Channel channel = connection.createChannel();
 
-        channel.queueDeclare(QUEUE_NAME, false, false, false, null);
-        System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+        channel.queueDeclare(DLE_QUEUE, false, false, false, null);
 
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
                     throws IOException {
                 String message = new String(body, "UTF-8");
-                System.out.println(" [x] Second consumer started processing of message: " + message);
-                System.out.println(" [x] Received '" + message + "'");
+                System.err.println(" [x] DLE queue received '" + message + "'");
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
@@ -36,6 +32,19 @@ public class Recv {
                 }
             }
         };
-        channel.basicConsume(QUEUE_NAME, true, consumer);
+        channel.basicConsume(DLE_QUEUE, true, consumer);
+
+    }
+
+    private static void doWork(String task) {
+        for (char ch : task.toCharArray()) {
+            if (ch == '.') {
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException _ignored) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
     }
 }
